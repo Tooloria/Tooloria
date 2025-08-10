@@ -1,119 +1,125 @@
-  
-    
-  <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Image Compressor</title>
-  <style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Image Compressor Tool</title>
+<style>
     body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background-color: #f0f8ff;
-      color: #333;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 20px;
+        font-family: Arial, sans-serif;
+        background-color: #ffffff;
+        color: #000;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
     }
-
     h1 {
-      color: #007bff;
+        color: #007BFF;
+        margin-top: 20px;
     }
-
     .container {
-      background: #ffffff;
-      border-radius: 12px;
-      box-shadow: 0 0 10px rgba(0, 123, 255, 0.1);
-      padding: 20px;
-      max-width: 500px;
-      width: 100%;
-      text-align: center;
+        background: #f9f9f9;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        max-width: 500px;
+        width: 100%;
     }
-
-    input[type="file"] {
-      margin: 15px 0;
+    input[type="file"],
+    input[type="range"] {
+        width: 100%;
+        margin: 10px 0;
     }
-
     img {
-      max-width: 100%;
-      margin-top: 15px;
-      border-radius: 10px;
+        max-width: 100%;
+        border-radius: 8px;
+        margin: 10px 0;
     }
-
     button {
-      margin-top: 15px;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 5px;
-      cursor: pointer;
+        background-color: #007BFF;
+        color: white;
+        padding: 10px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        width: 100%;
     }
-
     button:hover {
-      background-color: #0056b3;
+        background-color: #0056b3;
     }
-
     @media (max-width: 600px) {
-      .container {
-        padding: 15px;
-      }
+        .container {
+            padding: 15px;
+        }
     }
-  </style>
+</style>
 </head>
 <body>
-  <h1>Image Compressor</h1>
-  <div class="container">
-    <input type="file" id="upload" accept="image/*" />
-    <div id="previewContainer">
-      <img id="preview" src="" alt="Preview" style="display:none;" />
-    </div>
-    <button id="compressBtn" style="display:none;">Compress & Download</button>
-  </div>
+<h1>Image Compressor</h1>
+<div class="container">
+    <input type="file" id="upload" accept="image/*">
+    <label for="quality">Compression Quality: <span id="qualityValue">0.8</span></label>
+    <input type="range" id="quality" min="0.1" max="1" step="0.1" value="0.8">
+    <div id="preview"></div>
+    <button id="download" style="display:none;">Download Compressed Image</button>
+</div>
 
-  <script>
+<script>
     const upload = document.getElementById('upload');
+    const quality = document.getElementById('quality');
+    const qualityValue = document.getElementById('qualityValue');
     const preview = document.getElementById('preview');
-    const compressBtn = document.getElementById('compressBtn');
+    const downloadBtn = document.getElementById('download');
+    let compressedDataUrl = '';
 
-    upload.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = function (event) {
-          preview.src = event.target.result;
-          preview.style.display = 'block';
-          compressBtn.style.display = 'inline-block';
+    quality.addEventListener('input', () => {
+        qualityValue.textContent = quality.value;
+        if (preview.querySelector('img')) {
+            compressImage();
+        }
+    });
+
+    upload.addEventListener('change', () => {
+        const file = upload.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.src = e.target.result;
+                img.onload = () => {
+                    preview.innerHTML = '';
+                    preview.appendChild(img);
+                    compressImage();
+                };
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    function compressImage() {
+        const img = preview.querySelector('img');
+        if (!img) return;
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0, img.width, img.height);
+        compressedDataUrl = canvas.toDataURL('image/jpeg', parseFloat(quality.value));
+        downloadBtn.style.display = 'block';
+        downloadBtn.onclick = () => {
+            const link = document.createElement('a');
+            link.href = compressedDataUrl;
+            link.download = 'compressed-image.jpg';
+            link.click();
         };
-        reader.readAsDataURL(file);
-      }
-    });
-
-    compressBtn.addEventListener('click', () => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      const img = new Image();
-      img.src = preview.src;
-
-      img.onload = () => {
-        const scale = 0.5; // Compress to 50% size
-        canvas.width = img.width * scale;
-        canvas.height = img.height * scale;
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-        canvas.toBlob((blob) => {
-          const link = document.createElement('a');
-          link.href = URL.createObjectURL(blob);
-          link.download = 'compressed-image.jpg';
-          link.click();
-        }, 'image/jpeg', 0.7); // JPEG format with 70% quality
-      };
-    });
-  </script>
+    }
+</script>
 </body>
 </html>
+
   
   
   
